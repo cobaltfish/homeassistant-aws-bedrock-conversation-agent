@@ -407,10 +407,12 @@ class BedrockClient:
         
         try:
             _LOGGER.debug("Calling Bedrock model %s", model_id)
+            # invoke_model requires keyword arguments
             response = await self.hass.async_add_executor_job(
-                self._bedrock_runtime.invoke_model,
-                modelId=model_id,
-                body=json.dumps(request_body)
+                lambda: self._bedrock_runtime.invoke_model(
+                    modelId=model_id,
+                    body=json.dumps(request_body)
+                )
             )
             
             response_body = json.loads(response['body'].read())

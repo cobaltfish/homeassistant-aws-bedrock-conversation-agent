@@ -73,16 +73,16 @@ release: test ## Tag and create release (VERSION from manifest.json)
 	@git tag -a "$(TAG)" -m "Release $(TAG)"
 	@git push origin "$(TAG)"
 	@printf "\\n✅ Git tag $(TAG) created and pushed.\\n"
-	@if command -v gh >/dev/null 2>&1; then \\
-		printf "\\n📦 Creating GitHub release with gh for $(TAG)...\\n"; \\
-		gh release create "$(TAG)" --verify-tag --title "$(TAG)" --notes "Release $(TAG)"; \\
-		printf "\\n✅ GitHub release $(TAG) created.\\n"; \\
-	else \\
-		printf "\\n⚠️ gh CLI not found; skipped GitHub release creation.\\n"; \\
+	@if command -v gh >/dev/null 2>&1; then \
+		printf "\\n📦 Creating GitHub release with gh for $(TAG)...\\n"; \
+		gh release create "$(TAG)" --verify-tag --title "$(TAG)" --notes "Release $(TAG)"; \
+		printf "\\n✅ GitHub release $(TAG) created.\\n"; \
+	else \
+		printf "\\n⚠️ gh CLI not found; skipped GitHub release creation.\\n"; \
 	fi
 	@printf "\\nNext steps:\\n"
-	@printf "  1. Review the GitHub release for $(TAG) and adjust notes if needed\\n"\\
-	@printf "  2. Submit to HACS\\n"\\
+	@printf "  1. Review the GitHub release for $(TAG) and adjust notes if needed\\n"
+	@printf "  2. Submit to HACS\\n"
 
 version: ## Show current version
 	@printf "Current version: $(VERSION)\n"
