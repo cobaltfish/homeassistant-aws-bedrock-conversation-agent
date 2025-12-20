@@ -224,16 +224,13 @@ class BedrockClient:
         
         for tool in llm_api.tools:
             tool_def = {
-                "toolSpec": {
-                    "name": tool.name,
-                    "description": tool.description,
-                    "inputSchema": {
-                        "json": {
-                            "type": "object",
-                            "properties": {},
-                            "required": []
-                        }
-                    }
+                "type": "function",
+                "name": tool.name,
+                "description": tool.description,
+                "input_schema": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
                 }
             }
             
@@ -241,7 +238,7 @@ class BedrockClient:
             if hasattr(tool, 'parameters') and tool.parameters:
                 # For HassCallService tool
                 if tool.name == SERVICE_TOOL_NAME:
-                    tool_def["toolSpec"]["inputSchema"]["json"] = {
+                    tool_def["input_schema"] = {
                         "type": "object",
                         "properties": {
                             "service": {
@@ -384,17 +381,17 @@ class BedrockClient:
         # Build messages
         messages = self._build_bedrock_messages(conversation_content)
         
-        # Build request
+        # Build request - Update to use snake_case for keys
         request_body = {
-            "anthropicVersion": "bedrock-2023-05-31",
-            "maxTokens": max_tokens,
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": max_tokens,
             "temperature": temperature,
-            "topP": top_p,
+            "top_p": top_p,
             "messages": messages
         }
         
         if system_prompt:
-            request_body["system"] = [{"text": system_prompt}]
+            request_body["system"] = system_prompt
         
         # Add tools if available
         tools = self._format_tools_for_bedrock(llm_api)
@@ -403,10 +400,11 @@ class BedrockClient:
         
         # Only add top_k for Claude models
         if "anthropic.claude" in model_id:
-            request_body["topK"] = top_k
+            request_body["top_k"] = top_k
         
         try:
             _LOGGER.debug("Calling Bedrock model %s", model_id)
+            _LOGGER.debug("Request body: %s", json.dumps(request_body))
             # invoke_model requires keyword arguments
             response = await self.hass.async_add_executor_job(
                 lambda: self._bedrock_runtime.invoke_model(
