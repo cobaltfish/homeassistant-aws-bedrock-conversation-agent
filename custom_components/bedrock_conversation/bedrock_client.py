@@ -409,8 +409,8 @@ class BedrockClient:
             _LOGGER.debug("Calling Bedrock model %s", model_id)
             response = await self.hass.async_add_executor_job(
                 self._bedrock_runtime.invoke_model,
-                model_id,
-                json.dumps(request_body)
+                modelId=model_id,
+                body=json.dumps(request_body)
             )
             
             response_body = json.loads(response['body'].read())
