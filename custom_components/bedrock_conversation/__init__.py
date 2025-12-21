@@ -156,7 +156,8 @@ class BedrockServicesAPI(llm.API):
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up AWS Bedrock Conversation from a config entry."""
     # Register the LLM API if not already registered
-    if not llm.async_get_api(hass, HOME_LLM_API_ID):
+    existing_apis = [api.id for api in llm.async_get_apis(hass)]
+    if HOME_LLM_API_ID not in existing_apis:
         llm.async_register_api(hass, BedrockServicesAPI(hass, HOME_LLM_API_ID, "AWS Bedrock Services"))
 
     hass.data.setdefault(DOMAIN, {})
