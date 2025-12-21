@@ -1,5 +1,4 @@
 
-
 .PHONY: test venv deps clean lint format release version typecheck release-no-tests
 
 venv:
@@ -45,7 +44,9 @@ release: test-simple
 		else \
 			echo "Creating tag v$$VERSION" && \
 			git tag -a "v$$VERSION" -m "Release v$$VERSION" && \
-			git push origin "v$$VERSION"; \
+			git push origin "v$$VERSION" && \
+			echo "Creating GitHub release for v$$VERSION" && \
+			gh release create "v$$VERSION" --title "Release v$$VERSION" --notes "Automated release of version $$VERSION"; \
 		fi \
 	else \
 		echo "Error: Working tree has uncommitted changes"; \
