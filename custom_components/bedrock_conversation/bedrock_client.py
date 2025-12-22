@@ -421,7 +421,6 @@ class BedrockClient:
             "anthropic_version": "bedrock-2023-05-31",
             "max_tokens": max_tokens,
             "temperature": temperature,
-            "top_p": top_p,
             "messages": messages
         }
         
@@ -434,9 +433,10 @@ class BedrockClient:
         if tools:
             request_body["tools"] = tools
         
-        # Only add top_k for Claude models
-        if "anthropic.claude" in model_id:
-            request_body["top_k"] = top_k
+        # Note: For Claude models, temperature and top_p are mutually exclusive.
+        # We use temperature by default and do not include top_p in the request.
+        if not "anthropic.claude" in model_id:
+            request_body["top_p"] = top_p
         
         try:
             _LOGGER.debug("Calling Bedrock model %s", model_id)
