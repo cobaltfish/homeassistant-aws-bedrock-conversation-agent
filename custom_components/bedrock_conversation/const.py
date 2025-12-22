@@ -24,6 +24,7 @@ CONF_REMEMBER_NUM_INTERACTIONS: Final = "remember_num_interactions"
 CONF_MAX_TOOL_CALL_ITERATIONS: Final = "max_tool_call_iterations"
 CONF_EXTRA_ATTRIBUTES_TO_EXPOSE: Final = "extra_attributes_to_expose"
 CONF_LLM_HASS_API: Final = "llm_hass_api"
+CONF_SELECTED_LANGUAGE: Final = "selected_language"
 
 DEFAULT_MODEL: Final = "anthropic.claude-3-5-sonnet-20240620-v1:0"
 DEFAULT_MODEL_ID: Final = "anthropic.claude-3-5-sonnet-20240620-v1:0"
@@ -37,6 +38,7 @@ DEFAULT_REFRESH_SYSTEM_PROMPT: Final = True
 DEFAULT_REMEMBER_CONVERSATION: Final = True
 DEFAULT_REMEMBER_NUM_INTERACTIONS: Final = 10
 DEFAULT_MAX_TOOL_CALL_ITERATIONS: Final = 5
+DEFAULT_SELECTED_LANGUAGE: Final = "en"
 DEFAULT_EXTRA_ATTRIBUTES: Final = [
     "brightness",
     "rgb_color",
@@ -173,7 +175,7 @@ CURRENT_DATE_PROMPT = {
 
 # Template for devices prompt
 DEVICES_PROMPT = {
-    "en": "{% if devices %}The user has the following devices:\n\n{% for device in devices %}{% if device.area_name %}[{{ device.area_name }}] {% endif %}{{ device.name }} ({{ device.entity_id }}): {{ device.state }}{% if device.attributes %} ({% for attr in device.attributes %}{{ attr }}{% if not loop.last %}, {% endif %}{% endfor %}){% endif %}\n{% endfor %}{% else %}The user has no exposed devices.{% endif %}",
+    "en": "{% if devices %}The user has the following devices:\\n\\n{% for device in devices %}{% if device.area_name %}[{{ device.area_name }}] {% endif %}{{ device.name }} ({{ device.entity_id }}): {{ device.state }}{% if device.attributes %} ({% for attr in device.attributes %}{{ attr }}{% if not loop.last %}, {% endif %}{% endfor %}){% endif %}\\n{% endfor %}{% else %}The user has no exposed devices.{% endif %}",
 }
 
 # Attribute constants
