@@ -233,7 +233,7 @@ class BedrockClient:
         # Get persona and date prompts
         persona_prompt = PERSONA_PROMPTS.get(language, PERSONA_PROMPTS["en"])
         date_prompt_template = CURRENT_DATE_PROMPT.get(language, CURRENT_DATE_PROMPT["en"])
-        devices_label = DEVICES_PROMPT.get(language, DEVICES_PROMPT["en"])
+        devices_template = DEVICES_PROMPT.get(language, DEVICES_PROMPT["en"])
         
         # Get current date/time and format it
         current_datetime = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
@@ -242,23 +242,27 @@ class BedrockClient:
         # Get exposed devices
         devices = self._get_exposed_entities()
         
-        # Replace placeholders
-        prompt = prompt_template
-        prompt = prompt.replace("<persona>", persona_prompt)
-        prompt = prompt.replace("<current_date>", date_prompt)
-        prompt = prompt.replace("<devices>", devices_label)
+        _LOGGER.debug("Found %d exposed devices for system prompt", len(devices))
         
-        # Render the Jinja2 template with devices
+        # First, render the devices section with Jinja
         try:
-            rendered = template.Template(prompt, self.hass).async_render(
+            devices_rendered = template.Template(devices_template, self.hass).async_render(
                 {"devices": [d.__dict__ for d in devices]},
                 parse_result=False
             )
         except TemplateError as err:
-            _LOGGER.error("Error rendering prompt template: %s", err)
+            _LOGGER.error("Error rendering devices template: %s", err)
             raise
         
-        return rendered
+        # Now replace placeholders in the main prompt template
+        prompt = prompt_template
+        prompt = prompt.replace("<persona>", persona_prompt)
+        prompt = prompt.replace("<current_date>", date_prompt)
+        prompt = prompt.replace("<devices>", devices_rendered)
+        
+        _LOGGER.debug("Generated system prompt with %d characters", len(prompt))
+        
+        return prompt
 
     def _format_tools_for_bedrock(self, llm_api: llm.APIInstance | None) -> list[dict[str, Any]]:
         """Format Home Assistant tools for Bedrock tool use."""
@@ -419,6 +423,8 @@ class BedrockClient:
                 system_prompt = content.content
                 break
         
+        _LOGGER.debug("System prompt length: %d characters", len(system_prompt) if system_prompt else 0)
+        
         # Build messages
         messages = self._build_bedrock_messages(conversation_content)
         
@@ -438,6 +444,7 @@ class BedrockClient:
         tools = self._format_tools_for_bedrock(llm_api)
         if tools:
             request_body["tools"] = tools
+            _LOGGER.debug("Added %d tools to request", len(tools))
         
         # Note: For Claude models, temperature and top_p are mutually exclusive.
         # We use temperature by default and do not include top_p in the request.
