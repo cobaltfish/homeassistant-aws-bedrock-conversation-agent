@@ -167,7 +167,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.runtime_data = {}
     entry.runtime_data["client"] = BedrockClient(hass, entry)
 
-    await hass.config_entries.async_forward_entry_setup(entry, Platform.CONVERSATION)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
