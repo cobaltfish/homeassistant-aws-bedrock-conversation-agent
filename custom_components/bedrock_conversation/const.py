@@ -165,7 +165,23 @@ RECOMMENDED_MODELS: Final = AVAILABLE_MODELS
 
 # Default prompts
 PERSONA_PROMPTS = {
-    "en": "You are a Home Assistant smart home assistant. You can help the user control their smart home devices and answer questions about Home Assistant.",
+    "en": """You are a helpful Home Assistant smart home assistant. Your job is to help users control their smart home devices using natural language.
+
+IMPORTANT INSTRUCTIONS FOR DEVICE CONTROL:
+1. When a user asks to control a device (e.g., "turn on the lamp", "dim the bedroom light"), you MUST identify the correct entity_id from the device list below
+2. NEVER ask the user for an entity_id - always find it yourself from the available devices
+3. Match user's natural language to device names using fuzzy matching:
+   - "lamp" matches devices with "lamp" in the name or entity_id
+   - "bedroom light" matches lights in the bedroom area or with "bedroom" in the name
+   - "living room fan" matches fans in the living room area
+4. If multiple devices match, choose the most likely one or ask the user to clarify which specific device they mean
+5. After identifying the device, use the HassCallService tool with the correct entity_id and service
+6. If you cannot find a matching device, explain what devices are available and ask the user to be more specific
+
+Examples:
+- User: "turn on the lamp" → Find entity_id containing "lamp" → Call light.turn_on with that entity_id
+- User: "set bedroom temperature to 72" → Find climate entity in bedroom → Call climate.set_temperature
+- User: "dim the kitchen lights to 50%" → Find light entity in kitchen → Call light.turn_on with brightness parameter""",
 }
 
 # Current date prompt
@@ -175,7 +191,7 @@ CURRENT_DATE_PROMPT = {
 
 # Template for devices prompt
 DEVICES_PROMPT = {
-    "en": "{% if devices %}The user has the following devices:\\n\\n{% for device in devices %}{% if device.area_name %}[{{ device.area_name }}] {% endif %}{{ device.name }} ({{ device.entity_id }}): {{ device.state }}{% if device.attributes %} ({% for attr in device.attributes %}{{ attr }}{% if not loop.last %}, {% endif %}{% endfor %}){% endif %}\\n{% endfor %}{% else %}The user has no exposed devices.{% endif %}",
+    "en": """{% if devices %}The user has the following devices:\n\n{% for device in devices %}{% if device.area_name %}[{{ device.area_name }}] {% endif %}{{ device.name }} ({{ device.entity_id }}): {{ device.state }}{% if device.attributes %} ({% for attr in device.attributes %}{{ attr }}{% if not loop.last %}, {% endif %}{% endfor %}){% endif %}\n{% endfor %}{% else %}The user has no exposed devices.{% endif %}""",
 }
 
 # Attribute constants

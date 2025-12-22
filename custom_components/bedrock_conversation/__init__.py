@@ -48,8 +48,11 @@ class HassServiceTool(llm.Tool):
 
     name = SERVICE_TOOL_NAME
     description = (
-        "Calls a Home Assistant service to control devices. "
-        "Use this to turn devices on/off, adjust settings, etc."
+        "Calls a Home Assistant service to control a specific device. "
+        "You MUST provide the exact entity_id from the device list in the system prompt. "
+        "Use this tool after identifying the correct device from the user's natural language request. "
+        "For example: if user says 'turn on the lamp', find the entity_id containing 'lamp' from the device list, "
+        "then call this tool with service='light.turn_on' and target_device='light.lamp_entity_id'."
     )
 
     parameters = vol.Schema(
@@ -145,8 +148,13 @@ class BedrockServicesAPI(llm.API):
         return llm.APIInstance(
             api=self,
             api_prompt=(
-                "You can control Home Assistant devices using the HassCallService tool. "
-                "Always use entity IDs from the device list provided in the system prompt."
+                "You have access to the HassCallService tool to control Home Assistant devices. "
+                "CRITICAL: The device list in the system prompt contains all available devices with their entity_ids. "
+                "When the user asks to control a device, YOU MUST: "
+                "1. Search the device list for a matching entity based on the user's natural language (e.g., 'lamp', 'bedroom light') "
+                "2. Identify the correct entity_id from that list "
+                "3. Call HassCallService with the exact entity_id you found "
+                "NEVER ask the user for an entity_id - always find it yourself from the provided device list."
             ),
             llm_context=llm_context,
             tools=tools,
