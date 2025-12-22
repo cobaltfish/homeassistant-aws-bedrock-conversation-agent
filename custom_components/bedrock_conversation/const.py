@@ -28,7 +28,11 @@ CONF_SELECTED_LANGUAGE: Final = "selected_language"
 
 DEFAULT_MODEL: Final = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 DEFAULT_MODEL_ID: Final = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
-DEFAULT_PROMPT: Final = ""
+DEFAULT_PROMPT: Final = """<persona>
+
+<current_date>
+
+<devices>"""
 DEFAULT_MAX_TOKENS: Final = 4096
 DEFAULT_TEMPERATURE: Final = 1.0
 DEFAULT_TOP_P: Final = 0.999

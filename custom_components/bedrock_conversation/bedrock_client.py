@@ -226,12 +226,18 @@ class BedrockClient:
         options: dict[str, Any]
     ) -> str:
         """Generate the system prompt with device information."""
+        from datetime import datetime
+        
         language = options.get(CONF_SELECTED_LANGUAGE, DEFAULT_SELECTED_LANGUAGE)
         
         # Get persona and date prompts
         persona_prompt = PERSONA_PROMPTS.get(language, PERSONA_PROMPTS["en"])
-        date_prompt = CURRENT_DATE_PROMPT.get(language, CURRENT_DATE_PROMPT["en"])
+        date_prompt_template = CURRENT_DATE_PROMPT.get(language, CURRENT_DATE_PROMPT["en"])
         devices_label = DEVICES_PROMPT.get(language, DEVICES_PROMPT["en"])
+        
+        # Get current date/time and format it
+        current_datetime = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
+        date_prompt = date_prompt_template.replace("<current_date>", current_datetime)
         
         # Get exposed devices
         devices = self._get_exposed_entities()
