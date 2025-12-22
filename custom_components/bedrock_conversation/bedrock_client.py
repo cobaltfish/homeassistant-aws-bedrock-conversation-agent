@@ -473,14 +473,17 @@ class BedrockClient:
         
         try:
             _LOGGER.debug("Calling Bedrock model %s", model_id)
-            response = await self.hass.async_add_executor_job(
-                lambda: self._bedrock_runtime.invoke_model(
+            
+            # Define a function that does both the invoke AND the read in the executor
+            def invoke_and_read():
+                response = self._bedrock_runtime.invoke_model(
                     modelId=model_id,
                     body=json.dumps(request_body)
                 )
-            )
+                # Read the response body in the executor thread to avoid blocking
+                return json.loads(response['body'].read())
             
-            response_body = json.loads(response['body'].read())
+            response_body = await self.hass.async_add_executor_job(invoke_and_read)
             _LOGGER.debug("Received response from Bedrock: %s", response_body)
             
             return response_body
