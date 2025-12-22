@@ -348,23 +348,22 @@ class BedrockClient:
             elif isinstance(content, conversation.UserContent):
                 messages.append({
                     "role": "user",
-                    "content": [{"text": content.content}]
+                    "content": [{"type": "text", "text": content.content}]
                 })
             
             elif isinstance(content, conversation.AssistantContent):
                 message_content = []
                 
                 if content.content:
-                    message_content.append({"text": content.content})
+                    message_content.append({"type": "text", "text": content.content})
                 
                 if content.tool_calls:
                     for tool_call in content.tool_calls:
                         message_content.append({
-                            "toolUse": {
-                                "toolUseId": f"tool_{id(tool_call)}",
-                                "name": tool_call.tool_name,
-                                "input": tool_call.tool_args
-                            }
+                            "type": "tool_use",
+                            "id": f"tool_{id(tool_call)}",
+                            "name": tool_call.tool_name,
+                            "input": tool_call.tool_args
                         })
                 
                 if message_content:
@@ -375,24 +374,20 @@ class BedrockClient:
             
             elif isinstance(content, conversation.ToolResultContent):
                 # Tool results go in user messages in Bedrock
+                tool_result_block = {
+                    "type": "tool_result",
+                    "tool_use_id": content.tool_call_id,
+                    "content": [{"type": "json", "json": content.result}]
+                }
+                
                 if messages and messages[-1]["role"] == "user":
                     # Append to last user message
-                    messages[-1]["content"].append({
-                        "toolResult": {
-                            "toolUseId": content.tool_call_id,
-                            "content": [{"json": content.result}]
-                        }
-                    })
+                    messages[-1]["content"].append(tool_result_block)
                 else:
                     # Create new user message
                     messages.append({
                         "role": "user",
-                        "content": [{
-                            "toolResult": {
-                                "toolUseId": content.tool_call_id,
-                                "content": [{"json": content.result}]
-                            }
-                        }]
+                        "content": [tool_result_block]
                     })
         
         return messages
