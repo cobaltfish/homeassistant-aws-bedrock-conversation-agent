@@ -205,6 +205,38 @@ class BedrockConversationEntity(
                         stop_reason, len(content_blocks)
                     )
                     
+                    # Handle missing stopReason
+                    if stop_reason is None:
+                        _LOGGER.error("❌ Bedrock response missing stopReason. This may indicate an API error.")
+                        _LOGGER.debug("Full response: %s", response)
+                        
+                        # Check if there's an error in the response
+                        if "error" in response:
+                            error_msg = f"Bedrock API error: {response.get('error')}"
+                            _LOGGER.error("❌ %s", error_msg)
+                            intent_response = intent.IntentResponse(language=user_input.language)
+                            intent_response.async_set_error(
+                                intent.IntentResponseErrorCode.UNKNOWN,
+                                error_msg
+                            )
+                            return conversation.ConversationResult(
+                                response=intent_response,
+                                conversation_id=user_input.conversation_id
+                            )
+                        
+                        # If no error but also no stopReason, treat as unexpected response
+                        error_msg = "Received unexpected response from Bedrock (missing stopReason)"
+                        _LOGGER.error("❌ %s", error_msg)
+                        intent_response = intent.IntentResponse(language=user_input.language)
+                        intent_response.async_set_error(
+                            intent.IntentResponseErrorCode.UNKNOWN,
+                            "Sorry, I received an unexpected response. Please try again."
+                        )
+                        return conversation.ConversationResult(
+                            response=intent_response,
+                            conversation_id=user_input.conversation_id
+                        )
+                    
                     # Extract text and tool uses
                     response_text = ""
                     tool_calls = []

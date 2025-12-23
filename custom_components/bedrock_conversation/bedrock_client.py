@@ -495,7 +495,14 @@ class BedrockClient:
                 _LOGGER.error("⏱️ %s", error_msg)
                 raise HomeAssistantError(error_msg)
             
-            _LOGGER.info("📥 Received response from Bedrock (stop_reason: %s)", response_body.get('stopReason'))
+            # Log the full response for debugging
+            stop_reason = response_body.get('stopReason')
+            _LOGGER.info("📥 Received response from Bedrock (stop_reason: %s)", stop_reason)
+            
+            # Log warning if stopReason is missing
+            if stop_reason is None:
+                _LOGGER.warning("⚠️ Bedrock response missing stopReason field. Full response keys: %s", list(response_body.keys()))
+                _LOGGER.debug("Full response body: %s", response_body)
             
             return response_body
             
