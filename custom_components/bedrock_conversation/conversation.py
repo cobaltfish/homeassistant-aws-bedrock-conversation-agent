@@ -196,8 +196,7 @@ class BedrockConversationEntity(
                         options
                     )
                     
-                    # Parse response
-                    # Note: Bedrock uses snake_case (stop_reason), not camelCase (stopReason)
+                    # Parse response - Bedrock uses snake_case (stop_reason)
                     stop_reason = response.get("stop_reason")
                     content_blocks = response.get("content", [])
                     
@@ -206,9 +205,12 @@ class BedrockConversationEntity(
                         stop_reason, len(content_blocks)
                     )
                     
-                    # Handle missing stopReason
+                    # Validate response structure
                     if stop_reason is None:
-                        _LOGGER.error("❌ Bedrock response missing stopReason. This may indicate an API error.")
+                        _LOGGER.error(
+                            "❌ Bedrock response missing 'stop_reason' field. "
+                            "Response keys: %s", list(response.keys())
+                        )
                         _LOGGER.debug("Full response: %s", response)
                         
                         # Check if there's an error in the response
@@ -225,20 +227,20 @@ class BedrockConversationEntity(
                                 conversation_id=user_input.conversation_id
                             )
                         
-                        # If no error but also no stopReason, treat as unexpected response
-                        error_msg = "Received unexpected response from Bedrock (missing stopReason)"
+                        # Unexpected response format
+                        error_msg = "Received unexpected response from Bedrock (missing stop_reason)"
                         _LOGGER.error("❌ %s", error_msg)
                         intent_response = intent.IntentResponse(language=user_input.language)
                         intent_response.async_set_error(
                             intent.IntentResponseErrorCode.UNKNOWN,
-                            "Sorry, I received an unexpected response. Please try again."
+                            "Sorry, I received an unexpected response. Please try again.",
                         )
                         return conversation.ConversationResult(
                             response=intent_response,
                             conversation_id=user_input.conversation_id
                         )
                     
-                    # Extract text and tool uses
+                    # Extract text and tool uses from content blocks
                     response_text = ""
                     tool_calls = []
                     tool_use_ids = {}  # Map tool_call to Bedrock's tool_use_id

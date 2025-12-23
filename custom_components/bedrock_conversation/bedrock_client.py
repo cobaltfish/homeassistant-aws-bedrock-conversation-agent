@@ -502,7 +502,7 @@ class BedrockClient:
             
             # Log warning if stop_reason is missing
             if stop_reason is None:
-                _LOGGER.warning("⚠️ Bedrock response missing stop_reason field. Full response keys: %s", list(response_body.keys()))
+                _LOGGER.warning("⚠️ Bedrock response missing 'stop_reason' field. Full response keys: %s", list(response_body.keys()))
                 _LOGGER.debug("Full response body: %s", response_body)
             
             return response_body
