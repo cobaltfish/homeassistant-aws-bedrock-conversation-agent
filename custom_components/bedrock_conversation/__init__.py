@@ -7,6 +7,7 @@ from homeassistant.helpers import llm
 from homeassistant.exceptions import HomeAssistantError
 import voluptuous as vol
 import logging
+import asyncio
 
 # Essential imports
 from .const import (
@@ -70,15 +71,16 @@ class HassServiceTool(llm.Tool):
         self, hass: HomeAssistant, tool_input: llm.ToolInput, llm_context: llm.LLMContext
     ) -> dict:
         """Call the Home Assistant service."""
+        # EMERGENCY DEBUG: Print to ensure this is being called
+        print(f"\n{'='*80}")
+        print(f"TOOL CALLED: {tool_input.tool_args}")
+        print(f"{'='*80}\n")
+        
         service = tool_input.tool_args.get("service")
         target_device = tool_input.tool_args.get("target_device")
 
-        # Log at INFO level so it shows in HA UI
-        _LOGGER.info(
-            "🔧 Bedrock Agent attempting to call service '%s' on device '%s'",
-            service,
-            target_device
-        )
+        # Use ERROR level to ensure it shows up
+        _LOGGER.error("🔧 TOOL CALL START: service=%s, device=%s", service, target_device)
 
         if not service or not target_device:
             error_msg = "Missing required parameters: service and target_device"
@@ -125,25 +127,29 @@ class HassServiceTool(llm.Tool):
             if key in ALLOWED_SERVICE_CALL_ARGUMENTS:
                 service_data[key] = value
 
-        _LOGGER.info(
-            "📤 Calling service %s.%s with data: %s",
-            domain,
-            service_name,
-            service_data
-        )
+        _LOGGER.error("📤 CALLING SERVICE: %s.%s with data: %s", domain, service_name, service_data)
 
         try:
-            # CRITICAL FIX: Use blocking=False to prevent hanging
-            # Home Assistant will queue the service call and return immediately
-            await hass.services.async_call(
-                domain,
-                service_name,
-                service_data,
-                blocking=False,  # ✅ FIXED: Non-blocking to prevent infinite hang
-            )
+            # Add timeout protection
+            async with asyncio.timeout(5.0):
+                _LOGGER.error("⏱️ Starting service call with 5s timeout...")
+                
+                # CRITICAL FIX: Use blocking=False to prevent hanging
+                await hass.services.async_call(
+                    domain,
+                    service_name,
+                    service_data,
+                    blocking=False,  # ✅ FIXED: Non-blocking to prevent infinite hang
+                )
+                
+                _LOGGER.error("⏱️ Service call returned (non-blocking)")
             
             success_msg = f"✅ Successfully called {service} on {target_device}"
-            _LOGGER.info(success_msg)
+            _LOGGER.error(success_msg)
+            
+            print(f"\n{'='*80}")
+            print(f"TOOL SUCCESS: {success_msg}")
+            print(f"{'='*80}\n")
             
             return {
                 "result": "success",
@@ -151,9 +157,22 @@ class HassServiceTool(llm.Tool):
                 "target": target_device,
                 "message": success_msg,
             }
+        except asyncio.TimeoutError:
+            error_msg = f"Timeout calling service {service} (took more than 5 seconds)"
+            _LOGGER.error("❌ %s", error_msg)
+            print(f"\n{'='*80}")
+            print(f"TOOL TIMEOUT: {error_msg}")
+            print(f"{'='*80}\n")
+            return {
+                "result": "error",
+                "error": error_msg,
+            }
         except Exception as err:
             error_msg = f"Error calling service {service}: {err}"
             _LOGGER.error("❌ %s", error_msg, exc_info=True)
+            print(f"\n{'='*80}")
+            print(f"TOOL ERROR: {error_msg}")
+            print(f"{'='*80}\n")
             return {
                 "result": "error",
                 "error": error_msg,
@@ -193,13 +212,17 @@ class BedrockServicesAPI(llm.API):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up AWS Bedrock Conversation from a config entry."""
-    _LOGGER.info("🚀 Setting up AWS Bedrock Conversation integration")
+    # Use ERROR level to ensure visibility
+    _LOGGER.error("🚀 BEDROCK SETUP: Starting integration setup")
+    print("\n" + "="*80)
+    print("BEDROCK INTEGRATION SETUP STARTING")
+    print("="*80 + "\n")
     
     # Register the LLM API if not already registered
     existing_apis = [api.id for api in llm.async_get_apis(hass)]
     if HOME_LLM_API_ID not in existing_apis:
         llm.async_register_api(hass, BedrockServicesAPI(hass, HOME_LLM_API_ID, "AWS Bedrock Services"))
-        _LOGGER.info("✅ Registered Bedrock Services LLM API")
+        _LOGGER.error("✅ BEDROCK SETUP: Registered Bedrock Services LLM API")
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = entry
@@ -212,11 +235,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
+    _LOGGER.error("✅ BEDROCK SETUP: Integration setup complete")
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    _LOGGER.info("🔄 Unloading AWS Bedrock Conversation integration")
+    _LOGGER.error("🔄 BEDROCK UNLOAD: Unloading integration")
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     
     if unload_ok:
@@ -226,5 +250,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options update."""
-    _LOGGER.info("🔄 Reloading AWS Bedrock Conversation due to configuration change")
+    _LOGGER.error("🔄 BEDROCK RELOAD: Reloading due to configuration change")
     await hass.config_entries.async_reload(entry.entry_id)
