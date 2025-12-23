@@ -73,33 +73,48 @@ class HassServiceTool(llm.Tool):
         service = tool_input.tool_args.get("service")
         target_device = tool_input.tool_args.get("target_device")
 
+        # Log at INFO level so it shows in HA UI
+        _LOGGER.info(
+            "🔧 Bedrock Agent attempting to call service '%s' on device '%s'",
+            service,
+            target_device
+        )
+
         if not service or not target_device:
+            error_msg = "Missing required parameters: service and target_device"
+            _LOGGER.error("❌ Service call failed: %s", error_msg)
             return {
                 "result": "error",
-                "error": "Missing required parameters: service and target_device",
+                "error": error_msg,
             }
 
         # Validate service
         try:
             domain, service_name = service.split(".", 1)
         except ValueError:
+            error_msg = f"Invalid service format: {service}. Expected 'domain.service'"
+            _LOGGER.error("❌ Service call failed: %s", error_msg)
             return {
                 "result": "error",
-                "error": f"Invalid service format: {service}. Expected 'domain.service'",
+                "error": error_msg,
             }
 
         # Check if domain is allowed
         if domain not in SERVICE_TOOL_ALLOWED_DOMAINS:
+            error_msg = f"Service domain '{domain}' is not allowed"
+            _LOGGER.error("❌ Service call failed: %s", error_msg)
             return {
                 "result": "error",
-                "error": f"Service domain '{domain}' is not allowed",
+                "error": error_msg,
             }
 
         # Check if service is allowed
         if service not in SERVICE_TOOL_ALLOWED_SERVICES:
+            error_msg = f"Service '{service}' is not allowed"
+            _LOGGER.error("❌ Service call failed: %s", error_msg)
             return {
                 "result": "error",
-                "error": f"Service '{service}' is not allowed",
+                "error": error_msg,
             }
 
         # Build service data
@@ -110,23 +125,38 @@ class HassServiceTool(llm.Tool):
             if key in ALLOWED_SERVICE_CALL_ARGUMENTS:
                 service_data[key] = value
 
+        _LOGGER.info(
+            "📤 Calling service %s.%s with data: %s",
+            domain,
+            service_name,
+            service_data
+        )
+
         try:
+            # CRITICAL FIX: Use blocking=False to prevent hanging
+            # Home Assistant will queue the service call and return immediately
             await hass.services.async_call(
                 domain,
                 service_name,
                 service_data,
-                blocking=True,
+                blocking=False,  # ✅ FIXED: Non-blocking to prevent infinite hang
             )
+            
+            success_msg = f"✅ Successfully called {service} on {target_device}"
+            _LOGGER.info(success_msg)
+            
             return {
                 "result": "success",
                 "service": service,
                 "target": target_device,
+                "message": success_msg,
             }
         except Exception as err:
-            _LOGGER.error("Error calling service %s: %s", service, err)
+            error_msg = f"Error calling service {service}: {err}"
+            _LOGGER.error("❌ %s", error_msg, exc_info=True)
             return {
                 "result": "error",
-                "error": str(err),
+                "error": error_msg,
             }
 
 
@@ -163,10 +193,13 @@ class BedrockServicesAPI(llm.API):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up AWS Bedrock Conversation from a config entry."""
+    _LOGGER.info("🚀 Setting up AWS Bedrock Conversation integration")
+    
     # Register the LLM API if not already registered
     existing_apis = [api.id for api in llm.async_get_apis(hass)]
     if HOME_LLM_API_ID not in existing_apis:
         llm.async_register_api(hass, BedrockServicesAPI(hass, HOME_LLM_API_ID, "AWS Bedrock Services"))
+        _LOGGER.info("✅ Registered Bedrock Services LLM API")
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = entry
@@ -183,6 +216,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
+    _LOGGER.info("🔄 Unloading AWS Bedrock Conversation integration")
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     
     if unload_ok:
@@ -192,4 +226,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options update."""
+    _LOGGER.info("🔄 Reloading AWS Bedrock Conversation due to configuration change")
     await hass.config_entries.async_reload(entry.entry_id)
